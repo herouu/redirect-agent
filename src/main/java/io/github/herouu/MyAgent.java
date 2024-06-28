@@ -32,7 +32,19 @@ public class MyAgent implements ClassFileTransformer {
         this.args = args;
     }
 
+    private static final String REGISTER_WITH_EUREKA = "eureka.client.register-with-eureka";
+    private static final String ACTIVE = "spring.profiles.active";
+
     public static void premain(String agentArgs, Instrumentation inst) {
+        if (StrUtil.isEmpty(System.getProperty(REGISTER_WITH_EUREKA))) {
+            System.setProperty(REGISTER_WITH_EUREKA, "false");
+        }
+        if (StrUtil.isEmpty(System.getProperty(ACTIVE))) {
+            System.setProperty(ACTIVE, "uat");
+        }
+        Console.log("{}={}", REGISTER_WITH_EUREKA, System.getProperty(REGISTER_WITH_EUREKA));
+        Console.log("{}={}", ACTIVE, System.getProperty(ACTIVE));
+        System.setProperty("eureka.client.register-with-eureka", "false");
         Console.log("feign url转换agent已加载！！！ 启动参数：{}", agentArgs);
         Map<String, Object> map = transArgs(agentArgs);
         String configFilePath = Convert.toStr(map.get("configFile"));
@@ -113,7 +125,7 @@ public class MyAgent implements ClassFileTransformer {
             cc.addField(field, CtField.Initializer.constant(configFile));
 
             for (CtMethod m : cc.getDeclaredMethods()) {
-                if (m.getMethodInfo().getName().equals("getUrl")) {
+                if ("getUrl".equals(m.getMethodInfo().getName())) {
 
                     int modifiers = m.getModifiers();
                     if ((modifiers & Modifier.STATIC) == 0) {
@@ -145,12 +157,31 @@ public class MyAgent implements ClassFileTransformer {
             cc.addField(field, CtField.Initializer.constant(configFile));
 
             for (CtMethod m : cc.getDeclaredMethods()) {
-                if (m.getMethodInfo().getName().equals("url")) {
+                if ("url".equals(m.getMethodInfo().getName())) {
                     m.insertAfter("{return AnotherClass.currentUrl(configFile,name,$_);}");
                     return cc.toBytecode();
                 }
             }
+        }
 
+        if (StrUtil.startWith(replace, "feign.Feign$Builder")) {
+            CtClass cc = classPool.get(replace);
+            String configFile = Convert.toStr(args.get("configFile"));
+            CtField field = new CtField(classPool.get("java.lang.String"), "configFile", cc);
+            field.setModifiers(Modifier.PRIVATE);
+            cc.addField(field, CtField.Initializer.constant(configFile));
+            for (CtMethod m : cc.getDeclaredMethods()) {
+                if ("build".equals(m.getMethodInfo().getName())) {
+                    Console.log("注入feign.Feign$Builder.build方法");
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("{");
+                    sb.append("client = new feign.okhttp.OkHttpClient(new okhttp3.OkHttpClient.Builder().dns(new CustomDns(configFile)).build());");
+                    sb.append("}");
+                    m.insertBefore(sb.toString());
+                    return cc.toBytecode();
+                }
+            }
+            return cc.toBytecode();
         }
         return classfileBuffer;
     }

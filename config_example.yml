@@ -2,7 +2,8 @@
 request:
   global:
     domain: "https://www.baidu.com"
-
+    dns:
+      - 114.114.114.114
 spring:
   cloud:
     gateway:

@@ -36,7 +36,6 @@ public class AnotherClass {
         } else {
             attributes = new HashMap<>();
         }
-        Console.log(attributes);
         if (StrUtil.isEmpty(ymlPath)) {
             Console.error("configPath is empty! return url:{}", url);
             return url;
@@ -92,7 +91,7 @@ public class AnotherClass {
         return defaultUrl;
     }
 
-    private static Dict getYamlConfig(String ymlPath) {
+    public static Dict getYamlConfig(String ymlPath) {
         Dict dict;
         if (Objects.isNull(dict = YAML_CONFIG.get(ymlPath))) {
             refreshYamlConfig(ymlPath);
@@ -130,7 +129,7 @@ public class AnotherClass {
             Object o = route.get("predicates");
 
             if (o instanceof List) {
-                List<?> predicates = (List) o;
+                List<?> predicates = (List<?>) o;
                 String first = Convert.toStr(IterUtil.getFirst(predicates));
                 String url = StrUtil.replace(first, "Path=", StrUtil.EMPTY).replace("/**", StrUtil.EMPTY);
                 map.put(key, Pair.of(url, local));

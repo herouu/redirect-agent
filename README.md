@@ -5,4 +5,10 @@
 2. `Shorten command line`下拉框配置为`JAR Manifest`
 
 
+# dns
+### windows
+* 清除系统的DNS缓存 ipconfig /flushdns
+* 解析域名 nslookup baidu.com
+* 指定dns服务器解析域名 nslookup baidu.com 114.114.114.114
+
 

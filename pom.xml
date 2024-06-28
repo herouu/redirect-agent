@@ -15,6 +15,11 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
         <hutool.version>5.8.24</hutool.version>
+        <dnsjava.version>3.5.3</dnsjava.version>
+        <feign.okhttp.version>9.5.1</feign.okhttp.version>
+        <javassist.version>3.30.2-GA</javassist.version>
+        <snakeyaml.version>1.25</snakeyaml.version>
+        <okhttp3.version>3.14.0</okhttp3.version>
     </properties>
 
     <dependencies>
@@ -27,24 +32,32 @@
         <dependency>
             <groupId>org.javassist</groupId>
             <artifactId>javassist</artifactId>
-            <version>3.30.2-GA</version>
+            <version>${javassist.version}</version>
         </dependency>
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
-            <version>1.25</version>
+            <version>${snakeyaml.version}</version>
         </dependency>
         <dependency>
             <groupId>cn.hutool</groupId>
-            <artifactId>hutool-bom</artifactId>
+            <artifactId>hutool-all</artifactId>
             <version>${hutool.version}</version>
-            <type>pom</type>
-            <exclusions>
-                <exclusion>
-                    <groupId>cn.hutool</groupId>
-                    <artifactId>hutool-extra</artifactId>
-                </exclusion>
-            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>dnsjava</groupId>
+            <artifactId>dnsjava</artifactId>
+            <version>${dnsjava.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-okhttp</artifactId>
+            <version>${feign.okhttp.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>${okhttp3.version}</version>
         </dependency>
     </dependencies>
 
@@ -53,7 +66,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.2.4</version> <!-- 确保使用最新版本 -->
+                <version>3.2.4</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -71,13 +84,30 @@
                                         <Can-Redefine-Classes>true</Can-Redefine-Classes>
                                         <Can-Retransform-Classes>true</Can-Retransform-Classes>
                                         <Can-Set-Native-Method-Prefix>false</Can-Set-Native-Method-Prefix>
-                                        <Boot-Class-Path>${project.build.finalName}.jar</Boot-Class-Path>
                                     </manifestEntries>
                                 </transformer>
                             </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>cn.hutool:hutool-all</artifact>
+                                    <excludes>
+                                        <exclude>cn.hutool.extra.spring.SpringUtil</exclude>
+                                        <exclude>META-INF/spring/*</exclude>
+                                        <exclude>META-INF/spring.factories</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
             </plugin>
         </plugins>
     </build>
