@@ -1,7 +1,9 @@
 package io.github.herouu;
 
+import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.lang.Console;
 import cn.hutool.core.lang.Dict;
+import cn.hutool.core.util.StrUtil;
 import okhttp3.Dns;
 import org.xbill.DNS.*;
 import org.xbill.DNS.Record;
@@ -21,6 +23,9 @@ public class CustomDns implements Dns {
     }
 
     private List<String> resolve(String hostname) throws UnknownHostException, TextParseException {
+        if (StrUtil.equals(hostname, "localhost") || StrUtil.equals(hostname, "localhost.localdomain") || StrUtil.equals(hostname, "127.0.0.1")) {
+            return ListUtil.toList("127.0.0.1");
+        }
         List<String> list = new ArrayList<>();
         Dict dict = AnotherClass.getYamlConfig(ymlPath);
         List<String> dnsServers = dict.getByPath("request.global.dns");

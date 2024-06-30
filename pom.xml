@@ -16,10 +16,10 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <hutool.version>5.8.24</hutool.version>
         <dnsjava.version>3.5.3</dnsjava.version>
-        <feign.okhttp.version>9.5.1</feign.okhttp.version>
+        <feign.okhttp.version>11.10</feign.okhttp.version>
         <javassist.version>3.30.2-GA</javassist.version>
         <snakeyaml.version>1.25</snakeyaml.version>
-        <okhttp3.version>3.14.0</okhttp3.version>
+        <okhttp3.version>3.14.9</okhttp3.version>
     </properties>
 
     <dependencies>
