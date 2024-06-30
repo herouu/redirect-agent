@@ -1,6 +1,8 @@
 package io.github.herouu;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.collection.IterUtil;
+import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.lang.Console;
 import cn.hutool.core.lang.Dict;
@@ -8,12 +10,12 @@ import cn.hutool.core.lang.Pair;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.setting.yaml.YamlUtil;
+import feign.okhttp.OkHttpClient;
+import io.github.herouu.entity.RequestGlobal;
 
-import java.net.URI;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.io.IOException;
+import java.net.*;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -108,17 +110,21 @@ public class AnotherClass {
     private static String replaceDomain(String url, String domain, String service, List<Map<String, Object>> routes) {
         URI asUri = URI.create(url);
         String host = asUri.getHost();
+        int port = asUri.getPort();
         Map<String, Pair<String, String>> map = resolveData(routes);
-        Pair<String, String> kv;
-        if (Objects.nonNull(kv = map.get(service))) {
+        Pair<String, String> kv = map.get(service);
+        if (Objects.nonNull(kv)) {
             if (StrUtil.isNotEmpty(kv.getValue())) {
                 String key = kv.getKey();
-                String result = asUri.getSchemeSpecificPart().replaceFirst("//", StrUtil.EMPTY).replaceFirst(host, StrUtil.EMPTY).replaceFirst(key, StrUtil.EMPTY);
+                String result = asUri.getSchemeSpecificPart().replaceFirst("//", StrUtil.EMPTY).replaceFirst(host, StrUtil.EMPTY)
+                        .replaceFirst(":" + Convert.toStr(port), StrUtil.EMPTY)
+                        .replaceFirst(key, StrUtil.EMPTY);
                 return kv.getValue() + result;
             }
         }
         return url.replaceFirst(host, URI.create(domain).getSchemeSpecificPart().replaceFirst("//", ""));
     }
+
 
     private static Map<String, Pair<String, String>> resolveData(List<Map<String, Object>> routes) {
         Map<String, Pair<String, String>> map = new HashMap<>();
@@ -136,6 +142,56 @@ public class AnotherClass {
             }
         }
         return map;
+    }
+
+
+    public static OkHttpClient newOkHttpClient(String configFile) {
+        Dict dict = getYamlConfig(configFile);
+        CustomDns customDns = new CustomDns(configFile);
+        okhttp3.OkHttpClient.Builder builder = new okhttp3.OkHttpClient.Builder();
+        RequestGlobal rg = dict.getByPath("request.global", RequestGlobal.class);
+        if (CollUtil.isNotEmpty(rg.getDns())) {
+            builder.dns(customDns);
+        }
+        if (StrUtil.isNotBlank(rg.getProxy())) {
+            String proxyAddr = rg.getProxy();
+            Proxy proxy = null;
+            if (StrUtil.startWith(proxyAddr, "socks5://")) {
+                String p = StrUtil.replace(proxyAddr, "socks5://", StrUtil.EMPTY);
+                String[] addrAndPort = StrUtil.splitToArray(p, ":");
+                proxy = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(addrAndPort[0], Integer.parseInt(addrAndPort[1])));
+            } else if (StrUtil.startWith(proxyAddr, "http://")) {
+                String p = StrUtil.replace(proxyAddr, "http://", StrUtil.EMPTY);
+                String[] addrAndPort = StrUtil.splitToArray(p, ":");
+                proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(addrAndPort[0], Integer.parseInt(addrAndPort[1])));
+            }
+            Proxy finalProxy = proxy;
+            if (Objects.nonNull(finalProxy)) {
+                ProxySelector customProxySelector = new ProxySelector() {
+                    @Override
+                    public List<Proxy> select(URI uri) {
+                        // 如果uri的主机名是localhost，则直接返回不使用代理
+                        if ("localhost".equals(uri.getHost()) || "127.0.0.1".equals(uri.getHost())) {
+                            return ListUtil.toList(Proxy.NO_PROXY);
+                        }
+                        if (CollUtil.contains(rg.getUnproxy(), uri.getHost())) {
+                            return ListUtil.toList(Proxy.NO_PROXY);
+                        }
+                        // 否则使用代理服务器
+                        return ListUtil.toList(finalProxy);
+                    }
+
+                    @Override
+                    public void connectFailed(URI uri, SocketAddress sa, IOException ioe) {
+                        System.out.println("Connection failed: " + uri + " via " + sa);
+                    }
+                };
+                builder.proxySelector(customProxySelector);
+            }
+        }
+
+        okhttp3.OkHttpClient build = builder.build();
+        return new OkHttpClient(build);
     }
 
 }

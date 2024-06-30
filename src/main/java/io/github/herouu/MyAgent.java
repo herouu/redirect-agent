@@ -175,7 +175,7 @@ public class MyAgent implements ClassFileTransformer {
                     Console.log("注入feign.Feign$Builder.build方法");
                     StringBuilder sb = new StringBuilder();
                     sb.append("{");
-                    sb.append("client = new feign.okhttp.OkHttpClient(new okhttp3.OkHttpClient.Builder().dns(new CustomDns(configFile)).build());");
+                    sb.append("client = AnotherClass.newOkHttpClient(configFile);");
                     sb.append("}");
                     m.insertBefore(sb.toString());
                     return cc.toBytecode();

@@ -4,6 +4,9 @@ request:
     domain: "https://www.baidu.com"
     dns:
       - 114.114.114.114
+    proxy: socks5://127.0.0.1:10808
+    unproxy:
+#      - "realip.cc"
 spring:
   cloud:
     gateway:
@@ -16,4 +19,12 @@ spring:
           uri: lb://baidu-feign
         # 自定义地址
           local: http://localhost:8080
+        - id: ip
+          filters:
+            - StripPrefix=2
+          predicates:
+            - Path=/api/ip/**
+          uri: lb://ip-service
+          # 自定义地址
+          local: https://realip.cc
 
